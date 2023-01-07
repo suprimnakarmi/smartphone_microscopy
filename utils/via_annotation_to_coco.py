@@ -10,6 +10,47 @@ import mmcv
 from detectron2.structures import BoxMode
 
 
+# function to rotate point
+def rotate_point(cx, cy, x, y, angle):
+    """Rotate a point (x, y) around the point (cx, cy) by the given angle (in radians)"""
+    return (
+        cx + (x - cx) * math.cos(angle) - (y - cy) * math.sin(angle),
+        cy + (x - cx) * math.sin(angle) + (y - cy) * math.cos(angle),
+    )
+
+
+def ellipse_to_bounding_box(ellipse):
+    """
+    Convert ellipse, which is a dictionary with keys cx, cy, rx, ry,
+    and theta in radians, into a bounding box that encloses the ellipse.
+    """
+    cx = ellipse["cx"]
+    cy = ellipse["cy"]
+    rx = ellipse["rx"]
+    ry = ellipse["ry"]
+    theta = ellipse["theta"]
+    orientation = math.radians(theta)
+    top_left_x = cx - rx / 2
+    top_left_y = cy - ry / 2
+    bottom_right_x = cx + rx / 2
+    bottom_right_y = cy + ry / 2
+
+    # rotate the corner points around the center point
+    top_left_x, top_left_y = rotate_point(cx, cy, top_left_x, top_left_y, orientation)
+    bottom_right_x, bottom_right_y = rotate_point(
+        cx, cy, bottom_right_x, bottom_right_y, orientation
+    )
+
+    width = bottom_right_x - top_left_x
+    height = bottom_right_y - top_left_y
+    return [
+        top_left_x,
+        top_left_y,
+        width,
+        height,
+    ]
+
+
 def cysts_annotations_to_coco(img_dir, input_json_file, out_json_file):
     # Function to change the annotations from VIA format to COCO format
 
@@ -46,25 +87,19 @@ def cysts_annotations_to_coco(img_dir, input_json_file, out_json_file):
             elif "Crypto" in region_attributes:
                 category_id = 0
 
-            # calculate the bounding box
-            ea = rx * math.cos(theta)
-            eb = ry * math.sin(theta)
-            ec = rx * math.sin(theta)
-            ed = ry * math.cos(theta)
-            width = math.sqrt(ea * ea + eb * eb) * 2
-            height = math.sqrt(ec * ec + ed * ed) * 2
+            # calculate the bounding box's corner points
+            top_left_x, top_left_y, width, height = ellipse_to_bounding_box(anno)
 
             data_anno = dict(
                 image_id=idx,
                 id=obj_count,
                 category_id=category_id,
                 bbox=[
-                    cx - width * 0.5,
-                    cy - height * 0.5,
-                    cx + width * 0.5,
-                    cy + height * 0.5,
+                    top_left_x,
+                    top_left_y,
+                    width,
+                    height,
                 ],
-                bbox_mode=BoxMode.XYXY_ABS,
                 segmentation=[],
                 iscrowd=0,
                 area=width * height,

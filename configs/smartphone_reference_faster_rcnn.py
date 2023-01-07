@@ -9,8 +9,9 @@ _base_ = (
 sample_type = "smartphone_reference"
 
 # dataset settings
+dataset_home = "/mnt/Enterprise/safal/AI_assisted_microscopy_system/cysts_dataset_all"
 dataset_type = "CocoDataset"
-data_root = "/mnt/Enterprise/safal/AI_assisted_microscopy_system/cysts_dataset_all/smartphone_reference"
+data_root = os.path.join(dataset_home, sample_type)
 classes = ("Crypto", "Giardia")
 # Use RepeatDataset to speed up training
 
@@ -34,6 +35,16 @@ data = dict(
         classes=classes,
         ann_file=os.path.join(data_root, "smartphone_reference_coco_annos_val.json"),
         img_prefix=os.path.join(data_root, "train"),
+    ),
+    test=dict(
+        type=dataset_type,
+        classes=classes,
+        ann_file=os.path.join(
+            dataset_home,
+            "smartphone_sample_test",
+            "smartphone_sample_test_coco_annos.json",
+        ),
+        img_prefix=os.path.join(dataset_home, "smartphone_sample_test", "test"),
     ),
 )
 
