@@ -11,11 +11,11 @@ from detectron2.structures import BoxMode
 
 
 # function to rotate point
-def rotate_point(cx, cy, x, y, angle):
+def rotate_point(center_x, center_y, x, y, angle):
     """Rotate a point (x, y) around the point (cx, cy) by the given angle (in radians)"""
     return (
-        cx + (x - cx) * math.cos(angle) - (y - cy) * math.sin(angle),
-        cy + (x - cx) * math.sin(angle) + (y - cy) * math.cos(angle),
+        center_x + (x - center_x) * math.cos(angle) - (y - center_y) * math.sin(angle),
+        center_y + (x - center_x) * math.sin(angle) + (y - center_y) * math.cos(angle),
     )
 
 
@@ -24,21 +24,23 @@ def ellipse_to_bounding_box(ellipse):
     Convert ellipse, which is a dictionary with keys cx, cy, rx, ry,
     and theta in radians, into a bounding box that encloses the ellipse.
     """
-    cx = ellipse["cx"]
-    cy = ellipse["cy"]
-    rx = ellipse["rx"]
-    ry = ellipse["ry"]
+    center_x = ellipse["cx"]
+    center_y = ellipse["cy"]
+    minor_axis = ellipse["rx"]
+    major_axis = ellipse["ry"]
     theta = ellipse["theta"]
     orientation = math.radians(theta)
-    top_left_x = cx - rx / 2
-    top_left_y = cy - ry / 2
-    bottom_right_x = cx + rx / 2
-    bottom_right_y = cy + ry / 2
+    top_left_x = center_x - minor_axis
+    top_left_y = center_y - major_axis
+    bottom_right_x = center_x + minor_axis
+    bottom_right_y = center_y + major_axis
 
     # rotate the corner points around the center point
-    top_left_x, top_left_y = rotate_point(cx, cy, top_left_x, top_left_y, orientation)
+    top_left_x, top_left_y = rotate_point(
+        center_x, center_y, top_left_x, top_left_y, orientation
+    )
     bottom_right_x, bottom_right_y = rotate_point(
-        cx, cy, bottom_right_x, bottom_right_y, orientation
+        center_x, center_y, bottom_right_x, bottom_right_y, orientation
     )
 
     width = bottom_right_x - top_left_x
@@ -74,11 +76,6 @@ def cysts_annotations_to_coco(img_dir, input_json_file, out_json_file):
         for data_anno in v["regions"]:
             # reformat the polygon information to fit the specifications
             anno = data_anno["shape_attributes"]
-            cx = anno["cx"]
-            cy = anno["cy"]
-            rx = anno["rx"]
-            ry = anno["ry"]
-            theta = anno["theta"]
             region_attributes = data_anno["region_attributes"]["Cyst"]
 
             # specify the category_id to match with the class.
