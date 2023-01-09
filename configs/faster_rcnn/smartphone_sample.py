@@ -1,16 +1,16 @@
 import os.path
 
-_base_ = (
-    "../mmdetection/configs/faster_rcnn/faster_rcnn_x101_32x8d_fpn_mstrain_3x_coco.py"
-)
+_base_ = "../../mmdetection/configs/faster_rcnn/faster_rcnn_x101_32x8d_fpn_mstrain_3x_coco.py"
 
 
 # sample type
 sample_type = "smartphone_sample"
+fold = 1
 
 # dataset settings
+dataset_home = "/mnt/Enterprise/safal/AI_assisted_microscopy_system/cysts_dataset_all"
 dataset_type = "CocoDataset"
-data_root = "/mnt/Enterprise/safal/AI_assisted_microscopy_system/cysts_dataset_all/smartphone_sample"
+data_root = os.path.join(dataset_home, sample_type)
 classes = ("Crypto", "Giardia")
 # Use RepeatDataset to speed up training
 
@@ -23,15 +23,29 @@ data = dict(
         dataset=dict(
             type=dataset_type,
             classes=classes,
-            ann_file=os.path.join(data_root, "smartphone_sample_coco_annos_train.json"),
+            ann_file=os.path.join(
+                data_root, f"fold_{fold}", "smartphone_sample_coco_annos_train.json"
+            ),
             img_prefix=os.path.join(data_root, "train"),
         ),
     ),
     val=dict(
         type=dataset_type,
         classes=classes,
-        ann_file=os.path.join(data_root, "smartphone_sample_coco_annos_val.json"),
+        ann_file=os.path.join(
+            data_root, f"fold_{fold}", "smartphone_sample_coco_annos_val.json"
+        ),
         img_prefix=os.path.join(data_root, "train"),
+    ),
+    test=dict(
+        type=dataset_type,
+        classes=classes,
+        ann_file=os.path.join(
+            dataset_home,
+            "smartphone_sample_test",
+            "smartphone_sample_test_coco_annos.json",
+        ),
+        img_prefix=os.path.join(dataset_home, "smartphone_sample_test", "test"),
     ),
 )
 
@@ -53,7 +67,7 @@ log_config = dict(
             type="WandbLoggerHook",
             init_kwargs=dict(
                 project="mmdetection_cysts",
-                name=f"{sample_type}_faster_rcnn_x101_32x8d_fpn_mstrain_3x_coco",
+                name=f"{sample_type}_faster_rcnn_x101_32x8d_fpn_mstrain_3x_coco_fold{fold}",
             ),
         ),
     ],
@@ -62,4 +76,4 @@ log_config = dict(
 resume_from = None
 auto_resume = True
 
-work_dir = f"/mnt/Enterprise/safal/AI_assisted_microscopy_system/outputs/{sample_type}/faster_rcnn_x101_32x8d_fpn_mstrain_3x_coco"
+work_dir = f"/mnt/Enterprise/safal/AI_assisted_microscopy_system/outputs/{sample_type}/faster_rcnn_x101_32x8d_fpn_mstrain_3x_coco/fold{fold}"
