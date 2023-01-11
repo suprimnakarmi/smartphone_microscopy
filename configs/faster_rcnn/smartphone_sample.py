@@ -1,11 +1,16 @@
 import os.path
 
+from mmdet.apis import set_random_seed
+
 _base_ = "../../mmdetection/configs/faster_rcnn/faster_rcnn_x101_32x8d_fpn_mstrain_3x_coco.py"
 
 
+# set seed
+seed = 42
+set_random_seed(42, deterministic=False)
+
 # sample type
 sample_type = "smartphone_sample"
-fold = 1
 
 # dataset settings
 dataset_home = "/mnt/Enterprise/safal/AI_assisted_microscopy_system/cysts_dataset_all"
@@ -13,7 +18,6 @@ dataset_type = "CocoDataset"
 data_root = os.path.join(dataset_home, sample_type)
 classes = ("Crypto", "Giardia")
 # Use RepeatDataset to speed up training
-
 data = dict(
     samples_per_gpu=2,
     workers_per_gpu=2,
@@ -24,7 +28,7 @@ data = dict(
             type=dataset_type,
             classes=classes,
             ann_file=os.path.join(
-                data_root, f"fold_{fold}", "smartphone_sample_coco_annos_train.json"
+                data_root, "fold_4", "smartphone_sample_coco_annos_train.json"
             ),
             img_prefix=os.path.join(data_root, "train"),
         ),
@@ -33,7 +37,7 @@ data = dict(
         type=dataset_type,
         classes=classes,
         ann_file=os.path.join(
-            data_root, f"fold_{fold}", "smartphone_sample_coco_annos_val.json"
+            data_root, "fold_4", "smartphone_sample_coco_annos_val.json"
         ),
         img_prefix=os.path.join(data_root, "train"),
     ),
@@ -56,7 +60,7 @@ model = dict(
     ),
 )
 
-checkpoint_config = dict(interval=1, max_keep_ckpts=3)
+checkpoint_config = dict(interval=1, max_keep_ckpts=2)
 
 log_config = dict(
     interval=50,
@@ -67,7 +71,7 @@ log_config = dict(
             type="WandbLoggerHook",
             init_kwargs=dict(
                 project="mmdetection_cysts",
-                name=f"{sample_type}_faster_rcnn_x101_32x8d_fpn_mstrain_3x_coco_fold{fold}",
+                name=f"{sample_type}_faster_rcnn_x101_32x8d_fpn_mstrain_3x_coco_fold_4",
             ),
         ),
     ],
@@ -76,4 +80,4 @@ log_config = dict(
 resume_from = None
 auto_resume = True
 
-work_dir = f"/mnt/Enterprise/safal/AI_assisted_microscopy_system/outputs/{sample_type}/faster_rcnn_x101_32x8d_fpn_mstrain_3x_coco/fold{fold}"
+work_dir = f"/mnt/Enterprise/safal/AI_assisted_microscopy_system/outputs/{sample_type}/faster_rcnn_x101_32x8d_fpn_mstrain_3x_coco/fold_4"
