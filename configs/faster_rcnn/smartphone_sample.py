@@ -45,11 +45,9 @@ data = dict(
         type=dataset_type,
         classes=classes,
         ann_file=os.path.join(
-            dataset_home,
-            "smartphone_sample_test",
-            "smartphone_sample_test_coco_annos.json",
+            data_root, "fold_1", "smartphone_sample_coco_annos_val.json"
         ),
-        img_prefix=os.path.join(dataset_home, "smartphone_sample_test", "test"),
+        img_prefix=os.path.join(data_root, "train"),
     ),
 )
 
@@ -81,3 +79,5 @@ resume_from = None
 auto_resume = True
 
 work_dir = f"/mnt/Enterprise/safal/AI_assisted_microscopy_system/outputs/{sample_type}/faster_rcnn_x101_32x8d_fpn_mstrain_3x_coco/fold_4"
+
+runner = dict(type="IterBasedRunner", max_epochs=15000)
