@@ -30,7 +30,7 @@ data = dict(
             type=dataset_type,
             classes=classes,
             ann_file=os.path.join(
-                data_root, "fold_2", "brightfield_sample_coco_annos_train.json"
+                data_root, "fold_5", "brightfield_sample_coco_annos_train.json"
             ),
             img_prefix=os.path.join(data_root, "train"),
         ),
@@ -39,7 +39,15 @@ data = dict(
         type=dataset_type,
         classes=classes,
         ann_file=os.path.join(
-            data_root, "fold_2", "brightfield_sample_coco_annos_val.json"
+            data_root, "fold_5", "brightfield_sample_coco_annos_val.json"
+        ),
+        img_prefix=os.path.join(data_root, "train"),
+    ),
+    test=dict(
+        type=dataset_type,
+        classes=classes,
+        ann_file=os.path.join(
+            data_root, "fold_5", "brightfield_sample_coco_annos_val.json"
         ),
         img_prefix=os.path.join(data_root, "train"),
     ),
@@ -64,7 +72,7 @@ log_config = dict(
             init_kwargs=dict(
                 project="mmdetection_cysts",
                 group=f"faster_rcnn_{sample_type}",
-                name=f"{sample_type}_faster_rcnn_x101_32x8d_fpn_mstrain_3x_coco_fold_2",
+                name=f"{sample_type}_faster_rcnn_x101_32x8d_fpn_mstrain_3x_coco_fold_5",
             ),
         ),
     ],
@@ -73,6 +81,6 @@ log_config = dict(
 resume_from = None
 auto_resume = True
 
-work_dir = f"/mnt/Enterprise/safal/AI_assisted_microscopy_system/outputs/{sample_type}/faster_rcnn_x101_32x8d_fpn_mstrain_3x_coco/fold_2"
+work_dir = f"/mnt/Enterprise/safal/AI_assisted_microscopy_system/outputs/{sample_type}/faster_rcnn_x101_32x8d_fpn_mstrain_3x_coco/fold_5"
 
 runner = dict(type="EpochBasedRunner", max_epochs=15)
