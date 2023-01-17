@@ -17,6 +17,21 @@ dataset_type = "CocoDataset"
 data_root = os.path.join(dataset_home, sample_type)
 classes = ("Crypto", "Giardia")
 
+
+img_norm_cfg = dict(  # Image normalization config to normalize the input images
+    mean=[
+        123.675,
+        116.28,
+        103.53,
+    ],  # Mean values used to pre-training the pre-trained backbone models
+    std=[
+        58.395,
+        57.12,
+        57.375,
+    ],  # Standard variance used to pre-training the pre-trained backbone models
+    to_rgb=True,
+)
+
 # train pipeline
 train_pipeline = [
     dict(type="LoadImageFromFile"),
@@ -41,6 +56,7 @@ train_pipeline = [
         type="RandomFlip",  # Augmentation pipeline that flip the images and their annotations
         flip_ratio=0.5,
     ),  # The ratio or probability to flip
+    dict(type="Normalize", **img_norm_cfg),
     dict(
         type="Pad", size_divisor=32  # Padding config
     ),  # The number the padded images should be divisible
@@ -63,6 +79,7 @@ test_pipeline = [
         transforms=[
             dict(type="Resize", keep_ratio=True),
             dict(type="RandomFlip"),
+            dict(type="Normalize", **img_norm_cfg),
             dict(type="Pad", size_divisor=32),
             dict(type="ImageToTensor", keys=["img"]),
             dict(type="Collect", keys=["img"]),
@@ -81,7 +98,7 @@ data = dict(
             type=dataset_type,
             classes=classes,
             ann_file=os.path.join(
-                data_root, "fold_1", "smartphone_sample_coco_annos_train.json"
+                data_root, "fold_2", "smartphone_sample_coco_annos_train.json"
             ),
             img_prefix=os.path.join(data_root, "train"),
             pipeline=train_pipeline,
@@ -91,7 +108,7 @@ data = dict(
         type=dataset_type,
         classes=classes,
         ann_file=os.path.join(
-            data_root, "fold_1", "smartphone_sample_coco_annos_val.json"
+            data_root, "fold_2", "smartphone_sample_coco_annos_val.json"
         ),
         img_prefix=os.path.join(data_root, "train"),
         pipeline=test_pipeline,
@@ -100,7 +117,7 @@ data = dict(
         type=dataset_type,
         classes=classes,
         ann_file=os.path.join(
-            data_root, "fold_1", "smartphone_sample_coco_annos_val.json"
+            data_root, "fold_2", "smartphone_sample_coco_annos_val.json"
         ),
         img_prefix=os.path.join(data_root, "train"),
         pipeline=test_pipeline,
@@ -128,7 +145,7 @@ log_config = dict(
             init_kwargs=dict(
                 project="mmdetection_cysts",
                 group=f"retinanet_{sample_type}",
-                name=f"{sample_type}_retinanet_fold_1",
+                name=f"{sample_type}_retinanet_fold_2",
             ),
         ),
     ],
@@ -137,8 +154,10 @@ log_config = dict(
 resume_from = None
 auto_resume = True
 
-work_dir = f"/mnt/Enterprise/safal/AI_assisted_microscopy_system/outputs/{sample_type}/retinanet/fold_1"
+work_dir = f"/mnt/Enterprise/safal/AI_assisted_microscopy_system/outputs/{sample_type}/retinanet/fold_2"
 
 runner = dict(type="EpochBasedRunner", max_epochs=20)
 
 optimizer_config = dict(_delete_=True, grad_clip=dict(max_norm=35, norm_type=2))
+
+optimizer = dict(type="SGD", lr=0.005, momentum=0.9, weight_decay=0.0001)
