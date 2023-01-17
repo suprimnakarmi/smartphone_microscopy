@@ -28,7 +28,7 @@ data = dict(
             type=dataset_type,
             classes=classes,
             ann_file=os.path.join(
-                data_root, "fold_4", "smartphone_sample_coco_annos_train.json"
+                data_root, "fold_1", "smartphone_sample_coco_annos_train.json"
             ),
             img_prefix=os.path.join(data_root, "train"),
         ),
@@ -37,7 +37,7 @@ data = dict(
         type=dataset_type,
         classes=classes,
         ann_file=os.path.join(
-            data_root, "fold_4", "smartphone_sample_coco_annos_val.json"
+            data_root, "fold_1", "smartphone_sample_coco_annos_val.json"
         ),
         img_prefix=os.path.join(data_root, "train"),
     ),
@@ -50,7 +50,8 @@ data = dict(
         img_prefix=os.path.join(data_root, "train"),
     ),
 )
-
+# fp16 settings
+fp16 = dict(loss_scale=512.0)
 # change the number of classes in roi head to match the dataset
 model = dict(
     roi_head=dict(
@@ -69,7 +70,8 @@ log_config = dict(
             type="WandbLoggerHook",
             init_kwargs=dict(
                 project="mmdetection_cysts",
-                name=f"{sample_type}_faster_rcnn_x101_32x8d_fpn_mstrain_3x_coco_fold_4",
+                group=f"faster_rcnn_{sample_type}",
+                name=f"{sample_type}_faster_rcnn_x101_32x8d_fpn_mstrain_3x_coco_fold_1",
             ),
         ),
     ],
@@ -78,6 +80,6 @@ log_config = dict(
 resume_from = None
 auto_resume = True
 
-work_dir = f"/mnt/Enterprise/safal/AI_assisted_microscopy_system/outputs/{sample_type}/faster_rcnn_x101_32x8d_fpn_mstrain_3x_coco/fold_4"
+work_dir = f"/mnt/Enterprise/safal/AI_assisted_microscopy_system/outputs/{sample_type}/faster_rcnn_x101_32x8d_fpn_mstrain_3x_coco/fold_1"
 
-runner = dict(type="IterBasedRunner", max_epochs=15000)
+runner = dict(type="EpochBasedRunner", max_epochs=20)
