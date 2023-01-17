@@ -140,3 +140,5 @@ auto_resume = True
 work_dir = f"/mnt/Enterprise/safal/AI_assisted_microscopy_system/outputs/{sample_type}/retinanet/fold_1"
 
 runner = dict(type="EpochBasedRunner", max_epochs=20)
+
+optimizer_config = dict(_delete_=True, grad_clip=dict(max_norm=35, norm_type=2))
