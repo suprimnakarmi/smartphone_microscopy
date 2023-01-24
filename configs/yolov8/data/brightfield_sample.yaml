@@ -1,0 +1,9 @@
+path: /mnt/Enterprise/safal/AI_assisted_microscopy_system/yolov8/brightfield_sample/fold_1  # dataset root dir
+train: train  # train images (relative to 'path')
+val: val  # val images (relative to 'path')
+test:  val
+
+# Classes
+names:
+  0: Cryptosporidium
+  1: Giardia
