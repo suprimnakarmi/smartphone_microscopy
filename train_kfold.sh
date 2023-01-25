@@ -6,6 +6,7 @@
 #   The path to the config file.
 
 config_file=$1
+gpu_id=$2
 # check if the config file exists
 
 if [ ! -f $config_file ]; then
@@ -19,6 +20,6 @@ search_string="fold_1"
 for i in $(seq 1 $k); do
     replacement_value="fold_$i"
     sed -i "s/$search_string/$replacement_value/g" $config_file
-    python mmdetection/tools/train.py $config_file --gpu-id 1
+    python mmdetection/tools/train.py $config_file --gpu-id $gpu_id
     search_string=$replacement_value
 done

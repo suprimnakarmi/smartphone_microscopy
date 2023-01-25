@@ -127,9 +127,7 @@ data = dict(
 # Model
 # change the number of classes in roi head to match the dataset
 model = dict(
-    bbox_head=dict(
-        num_classes=2,
-    ),
+    bbox_head=dict(num_classes=2, loss_cls=dict(gamma=1.0, alpha=0.93)),
 )
 
 # checkpointing and logging
@@ -144,7 +142,7 @@ log_config = dict(
             type="WandbLoggerHook",
             init_kwargs=dict(
                 project="mmdetection_cysts",
-                group=f"retinanet_{sample_type}",
+                group=f"retinanet_new_{sample_type}",
                 name=f"{sample_type}_retinanet_fold_1",
             ),
         ),
@@ -160,4 +158,4 @@ runner = dict(type="EpochBasedRunner", max_epochs=20)
 
 optimizer_config = dict(_delete_=True, grad_clip=dict(max_norm=35, norm_type=2))
 
-optimizer = dict(type="SGD", lr=0.005, momentum=0.9, weight_decay=0.0001)
+optimizer = dict(type="SGD", lr=0.001, momentum=0.9, weight_decay=0.0001)
