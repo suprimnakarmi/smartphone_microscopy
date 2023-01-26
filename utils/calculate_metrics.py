@@ -4,16 +4,40 @@ from torchvision.ops import box_iou
 import pandas as pd
 import json
 import torch
+from os import PathLike
 
 
-def calculate_precision_recall_f1(pred_annotations_file, gt_annotations_file):
+def calculate_precision_recall_f1(
+    pred_annotations_file: PathLike,
+    gt_annotations_file: PathLike,
+    conf_threshold: float = 0,
+):
+    """
+    This function calculates the precision, recall and f1 score for each class
+    in the given ground truth and predicted annotations.
+
+    Arguments:
+        pred_annotations_file: path to the predicted annotations file
+        gt_annotations_file: path to the ground truth annotations file
+        conf_threshold: confidence threshold to filter out predictions
+
+    Returns:
+        metrics_df: dataframe containing the precision, recall and f1 score for each class
+        precisions: dictionary containing the precision for each class
+        recalls: dictionary containing the recall for each class
+        confidence_scores: dictionary containing the confidence score for each class
+
+    """
     # Precision x Recall is obtained individually by each class
     # Loop through each class and calculate the precision and recall
 
     # Precision = TP / (TP + FP)
     # Recall = TP / (TP + FN)
-    gt_annotations = json.load(open(gt_annotations_file))
-    pred_annotations = json.load(open(pred_annotations_file))
+    with open(gt_annotations_file) as f:
+        gt_annotations = json.load(f)
+
+    with open(pred_annotations_file) as f:
+        pred_annotations = json.load(f)
 
     gt_annotations_df = pd.DataFrame(gt_annotations["annotations"])
     pred_annotations_df = pd.DataFrame(pred_annotations)
@@ -30,8 +54,12 @@ def calculate_precision_recall_f1(pred_annotations_file, gt_annotations_file):
 
     # dataframe to store the precision, recall and f1 score for each class
     metrics_df = pd.DataFrame(
-        columns=["category_id", "precision", "recall", "f1_score", "TP", "FP"]
+        columns=["category", "precision", "recall", "f1_score", "TP", "FP"]
     )
+
+    precisions = dict((category, []) for category in categories)
+    recalls = dict((category, []) for category in categories)
+    confidence_scores = dict((category, []) for category in categories)
 
     for category in categories:
         # get the ground truth annotations for the current class
@@ -48,10 +76,11 @@ def calculate_precision_recall_f1(pred_annotations_file, gt_annotations_file):
             by="score", ascending=False
         )
 
-        # filter predictions with score > 0.3
-        pred_annotations_df_class = pred_annotations_df_class[
-            pred_annotations_df_class.score > 0.3
-        ]
+        # filter predictions with score > conf_threshold
+        if conf_threshold:
+            pred_annotations_df_class = pred_annotations_df_class[
+                pred_annotations_df_class.score > conf_threshold
+            ]
 
         true_positives_class = 0
         false_positives_class = 0
@@ -59,6 +88,13 @@ def calculate_precision_recall_f1(pred_annotations_file, gt_annotations_file):
         # get image ids for the current class from both ground truth and predicted annotations
         image_ids = pred_annotations_df_class["image_id"].unique()
         images_len = len(image_ids)
+
+        # get the confidence scores of the annotations with image id in image_ids
+        confidence_scores[category] = list(
+            pred_annotations_df_class[
+                pred_annotations_df_class.image_id.isin(image_ids)
+            ]["score"].values
+        )
 
         for image in image_ids:
             # get the ground truth annotations for the current image
@@ -75,17 +111,24 @@ def calculate_precision_recall_f1(pred_annotations_file, gt_annotations_file):
             gt_bboxes = torch.tensor(gt_bboxes)
 
             # get the predicted bounding boxes
-
-            # only take the predicted bounding boxes which have a score > 0.3
             pred_bboxes = list(pred_annotations_df_image.bbox.values)
             pred_bboxes = torch.tensor(pred_bboxes)
 
             if len(gt_bboxes) == 0:
-                false_positives_class += len(pred_bboxes)
+                # false_positives_class += len(pred_bboxes)
+                for i in range(len(pred_bboxes)):
+                    false_positives_class += 1
+                    precisions[category].append(
+                        true_positives_class
+                        / (true_positives_class + false_positives_class)
+                    )
+                    recalls[category].append(
+                        true_positives_class / gt_annotations_df_class.shape[0]
+                    )
                 continue
 
             # get the intersection over union for each predicted bounding box
-            ious = box_iou(gt_bboxes, pred_bboxes)
+            ious = box_iou(pred_bboxes, gt_bboxes)
 
             # get the maximum iou for each ground truth bounding box
             max_ious, _ = torch.max(ious, dim=0)
@@ -97,25 +140,26 @@ def calculate_precision_recall_f1(pred_annotations_file, gt_annotations_file):
             # get the indices of the predicted bounding boxes with iou < 0.5
             fp_indices = torch.where(max_ious < 0.5)[0]
 
-            # update the true positives and false positives
-            true_positives_class += len(tp_indices)
-            false_positives_class += len(fp_indices)
+            for i in range(len(tp_indices)):
+                true_positives_class += 1
+                precisions[category].append(
+                    true_positives_class
+                    / (true_positives_class + false_positives_class)
+                )
+                recalls[category].append(
+                    true_positives_class / gt_annotations_df_class.shape[0]
+                )
 
-        # print actual number of ground truth annotations and predicted annotations for the current class
-        print(
-            "Actual:",
-            gt_annotations_df_class.shape[0],
-            "Predicted:",
-            pred_annotations_df_class.shape[0],
-        )
+            for i in range(len(fp_indices)):
+                false_positives_class += 1
+                precisions[category].append(
+                    true_positives_class
+                    / (true_positives_class + false_positives_class)
+                )
+                recalls[category].append(
+                    true_positives_class / gt_annotations_df_class.shape[0]
+                )
 
-        # print true positives and false positives for the current class
-        print(
-            "True positives:",
-            true_positives_class,
-            "False positives:",
-            false_positives_class,
-        )
         # calculate the precision and recall
         precision = true_positives_class / (
             true_positives_class + false_positives_class
@@ -123,20 +167,21 @@ def calculate_precision_recall_f1(pred_annotations_file, gt_annotations_file):
         recall = true_positives_class / gt_annotations_df_class.shape[0]
 
         category_name = gt_annotations["categories"][category]["name"]
-        print(f"Category: {category_name}, Precision: {precision}, Recall: {recall}")
         f1_score = 2 * (precision * recall) / (precision + recall)
-        print(f"F1 Score: {f1_score}")
 
-        metrics_df = metrics_df.append(
+        category_metrics_df = pd.DataFrame(
             {
-                "category_id": category,
+                "category": category_name,
                 "precision": precision,
                 "recall": recall,
                 "f1_score": f1_score,
                 "TP": true_positives_class,
                 "FP": false_positives_class,
             },
-            ignore_index=True,
+            index=[0],
         )
 
-    return metrics_df
+        # concatenate the metrics for the current class to the metrics dataframe
+        metrics_df = pd.concat([metrics_df, category_metrics_df], axis=0)
+
+    return metrics_df, precisions, recalls, confidence_scores
