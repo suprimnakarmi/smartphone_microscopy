@@ -1,10 +1,10 @@
 import json
-import pandas as pd
-from torchvision.ops import box_iou
-import pandas as pd
-import json
-import torch
+import os.path
 from os import PathLike
+
+import pandas as pd
+import torch
+from torchvision.ops import box_iou
 
 
 def calculate_precision_recall_f1(
@@ -185,3 +185,75 @@ def calculate_precision_recall_f1(
         metrics_df = pd.concat([metrics_df, category_metrics_df], axis=0)
 
     return metrics_df, precisions, recalls, confidence_scores
+
+
+def calculate_5_fold_precision_recall_f1(
+    sample_type,
+    base_dir,
+    model_name,
+    conf_threshold=0.5,
+    save_metrics=False,
+):
+    """
+    Calculates the precision, recall and f1 score for the 5 folds of the dataset
+
+    Args:
+        sample_type (str): The type of sample to calculate the metrics for
+        base_dir (str): The base directory of the project
+        model_name (str): The name of the model to calculate the metrics for
+        conf_threshold (float): The confidence threshold to use for calculating the metrics
+        save_metrics (bool): Whether to save the metrics to a csv file
+
+    Returns:
+        metrics_df (pd.DataFrame): The metrics for the 5 folds
+    """
+    metrics_df = None
+
+    for fold in range(1, 6):
+        # get the ground truth and predicted annotations for the current fold
+        gt_annotation_file = os.path.join(
+            base_dir,
+            f"cysts_dataset_all/{sample_type}/fold_{fold}/{sample_type}_coco_annos_val.json",
+        )
+
+        pred_annotation_file = os.path.join(
+            base_dir,
+            f"outputs/{sample_type}/{model_name}/fold_{fold}/results.bbox.json",
+        )
+        if not os.path.exists(pred_annotation_file):
+            print(f"Skipping fold {fold} as no predictions were made")
+            continue
+
+        # calculate the precision, recall and f1 score for the current fold
+        fold_metrics_df, *_ = calculate_precision_recall_f1(
+            gt_annotation_file, pred_annotation_file, conf_threshold
+        )
+
+        # concatenate the metrics for the current fold to the metrics dataframe
+        metrics_df = (
+            fold_metrics_df
+            if fold == 1
+            else pd.concat([metrics_df, fold_metrics_df], axis=0)
+        )
+
+    metrics_df = metrics_df.groupby("category").agg(
+        {
+            "precision": ["mean", "std"],
+            "recall": ["mean", "std"],
+            "f1_score": ["mean", "std"],
+        }
+    )
+    metrics_df.columns = ["_".join(x) for x in metrics_df.columns]
+    metrics_df = metrics_df.reset_index()
+
+    if save_metrics:
+        save_path = os.path.join(
+            base_dir, f"outputs/{sample_type}/{model_name}/metrics_pr.csv"
+        )
+        metrics_df.to_csv(
+            save_path,
+            index=False,
+            float_format=r"%.3f",
+        )
+        print(f"Saved metrics to {save_path}")
+    return metrics_df

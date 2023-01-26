@@ -19,7 +19,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 
-from .calculate_metrics import calculate_precision_recall_f1
+from .metrics import calculate_precision_recall_f1
 
 
 def plot_pr_curve(args: Namespace):
