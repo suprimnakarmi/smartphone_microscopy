@@ -18,6 +18,7 @@ from argparse import ArgumentParser, Namespace
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
+import numpy as np
 
 from .metrics import calculate_precision_recall_f1
 
@@ -41,31 +42,41 @@ def plot_pr_curve(args: Namespace):
         print(f"Predictions for {model_type} not found")
         return
 
-    _, precisions, recalls, _ = calculate_precision_recall_f1(
-        pred_annotation_file, gt_annotation_file
-    )
+    confidence_thresholds = np.arange(0.7, 0.0, -0.05)
+    precisions = {
+        0: np.zeros(len(confidence_thresholds)),
+        1: np.zeros(len(confidence_thresholds)),
+    }
 
-    crypto_prec_df = pd.DataFrame(precisions[0])
-    crypto_rec_df = pd.DataFrame(recalls[0])
-    crypto_prec_df.columns = [f"precision"]
-    crypto_rec_df.columns = [f"recall"]
+    recalls = {
+        0: np.zeros(len(confidence_thresholds)),
+        1: np.zeros(len(confidence_thresholds)),
+    }
 
-    giardia_prec_df = pd.DataFrame(precisions[1])
-    giardia_rec_df = pd.DataFrame(recalls[1])
-    giardia_prec_df.columns = [f"precision"]
-    giardia_rec_df.columns = [f"recall"]
+    for i, conf_threshold in enumerate(confidence_thresholds):
+        metrics_df = calculate_precision_recall_f1(
+            pred_annotation_file, gt_annotation_file, conf_threshold
+        )
+        precisions[0][i] = metrics_df[metrics_df["category"] == "crypto"][0][
+            "precision"
+        ]
+        precisions[1][i] = metrics_df[metrics_df["category"] == "giardia"][0][
+            "precision"
+        ]
 
-    giardia_metrics_df = pd.DataFrame(
-        {
-            "precision": giardia_prec_df["precision"],
-            "recall": giardia_rec_df["recall"],
-        }
-    )
+        recalls[0][i] = metrics_df[metrics_df["category"] == "crypto"][0]["recall"]
+        recalls[1][i] = metrics_df[metrics_df["category"] == "giardia"][0]["recall"]
 
     crypto_metrics_df = pd.DataFrame(
         {
-            "precision": crypto_prec_df["precision"],
-            "recall": crypto_rec_df["recall"],
+            "precision": precisions[0],
+            "recall": recalls[0],
+        }
+    )
+    giardia_metrics_df = pd.DataFrame(
+        {
+            "precision": precisions[1],
+            "recall": recalls[1],
         }
     )
     # plot giardia and crypto pr curves for the given sample type
@@ -75,6 +86,8 @@ def plot_pr_curve(args: Namespace):
     sns.lineplot(data=giardia_metrics_df, x="recall", y="precision", label="Giardia")
     plt.xlabel("Recall")
     plt.ylabel("Precision")
+    plt.xlim(0, 1.1)
+    plt.ylim(0, 1.1)
     plt.title(
         f"Precision-Recall Curve for {sample_type.replace('_', ' ')} using {model_type.replace('_', ' ').capitalize()}"
     )
@@ -101,7 +114,7 @@ if __name__ == "__main__":
     parser.add_argument("--model_type", type=str, default="retinanet")
     parser.add_argument("--sample_type", type=str, default="brightfield_sample")
     parser.add_argument(
-        "--fold", type=int, default=5, help="Fold to use for evaluation"
+        "--fold", type=int, default=1, help="Fold to use for evaluation"
     )
     parser.add_argument("--save", type=bool, default=False)
     args = parser.parse_args()
