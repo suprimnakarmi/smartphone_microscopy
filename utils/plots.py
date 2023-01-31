@@ -104,6 +104,93 @@ def plot_pr_curve(args: Namespace):
         print(f"Saved pr curve at {save_path}")
 
 
+def plot_iou_conf_heatmaps(args: Namespace):
+    base_dir = args.base_dir
+    model_type = args.model_type
+    sample_type = args.sample_type
+    fold = args.fold
+
+    gt_annotation_file = os.path.join(
+        base_dir,
+        f"cysts_dataset_all/{sample_type}/fold_{fold}/{sample_type}_coco_annos_val.json",
+    )
+
+    pred_annotation_file = os.path.join(
+        base_dir, f"outputs/{sample_type}/{model_type}/fold_{fold}/results.bbox.json"
+    )
+
+    if not os.path.exists(pred_annotation_file):
+        print(f"Predictions for {model_type} not found")
+        return
+
+    confidence_thresholds = np.arange(0.1, 1.0, 0.1)
+    iou_thresholds = np.arange(0.1, 1.0, 0.1)
+    
+    metrics_df = pd.DataFrame(
+        columns=["conf_threshold", "iou_threshold", "precision", "recall", "f1_score"]
+    )
+
+    for conf_threshold in confidence_thresholds:
+        for iou_threshold in iou_thresholds:
+
+            print(
+                f"Calculating metrics for conf_threshold: {conf_threshold} and iou_threshold: {iou_threshold}"
+            )
+            metrics = calculate_precision_recall_f1(
+                pred_annotation_file, gt_annotation_file, conf_threshold=conf_threshold, iou_threshold=iou_threshold
+            )
+            metrics["conf_threshold"] = conf_threshold.round(2)
+            metrics["iou_threshold"] = iou_threshold.round(2)
+
+            metrics_df = pd.concat([metrics_df, metrics], axis=0)
+            print("Done")
+
+
+    metrics_df.reset_index(inplace=True)
+
+    # A subplot grid with 2 rows, 2 columns, first row for gcrypto, second for giardia, each column for precision and recall
+    fig, axs = plt.subplots(2, 2, figsize=(10, 10))
+    fig.suptitle(
+        f"Precision-Recall Heatmap for {sample_type.replace('_', ' ')} using {model_type.replace('_', ' ').capitalize()}"
+    )
+
+    for i in range(2):
+        for j in range(2):
+            if i == 0:
+                category = "Crypto"
+            else:
+                category = "Giardia"
+            if j == 0:
+                metric = "precision"
+            else:
+                metric = "recall"
+
+            sns.heatmap(
+                metrics_df[metrics_df["category"] == category].pivot(
+                    "conf_threshold", "iou_threshold", metric
+                ),
+                fmt=".2f",
+                ax=axs[i, j],
+            )
+            axs[i, j].set_title(f"{category.capitalize()} {metric.capitalize()}")
+            axs[i, j].set_xlabel("IoU Threshold")
+            axs[i, j].set_ylabel("Confidence Threshold")
+
+    if args.save:
+        save_path = os.path.join(
+            base_dir,
+            f"outputs/{sample_type}/{model_type}/pr_heatmap.png",
+        )
+        plt.savefig(
+            save_path,
+            dpi=300,
+            bbox_inches="tight",
+        )
+        print(f"Saved pr heatmap at {save_path}")
+
+
+
+
 if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument(
@@ -116,6 +203,10 @@ if __name__ == "__main__":
     parser.add_argument(
         "--fold", type=int, default=1, help="Fold to use for evaluation"
     )
+    parser.add_argument("--plot_type", type=str, default="heatmap", help="heatmap or pr_curve")
     parser.add_argument("--save", type=bool, default=False)
     args = parser.parse_args()
-    plot_pr_curve(args)
+    if args.plot_type == "heatmap":
+        plot_iou_conf_heatmaps(args)
+    else:
+        plot_pr_curve(args)

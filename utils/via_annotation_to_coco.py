@@ -7,7 +7,6 @@ import os
 from argparse import ArgumentParser
 import mmcv
 
-from detectron2.structures import BoxMode
 
 
 # function to rotate point
