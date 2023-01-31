@@ -2,7 +2,14 @@
 This script is used to plot the precision-recall curve for a given model and sample type.
 
 Usage:
-    python utils/plot_pr_curve.py --base_dir /path/to/base/dir --model_type model_type --sample_type sample_type --fold fold
+    python utils/plot_pr_curve.py \
+        --base_dir /path/to/base/dir \
+        --model_type model_type \
+        --sample_type sample_type \
+        --fold fold \
+        --save True \
+        --result_json /path/to/result.json \
+        --plot_type pr_curve
 
 Arguments:
     base_dir: path to the base directory where the outputs are stored
@@ -10,6 +17,8 @@ Arguments:
     sample_type: the sample type for which the pr curve is to be plotted
     fold: the fold for which the pr curve is to be plotted
     save: whether to save the plot or not
+    result_json: path to the result json file
+    plot_type: the type of plot to be plotted. Pr curve or iou conf heatmap
 """
 
 import os.path
@@ -125,7 +134,7 @@ def plot_iou_conf_heatmaps(args: Namespace):
 
     confidence_thresholds = np.arange(0.1, 1.0, 0.1)
     iou_thresholds = np.arange(0.1, 1.0, 0.1)
-    
+
     metrics_df = pd.DataFrame(
         columns=["conf_threshold", "iou_threshold", "precision", "recall", "f1_score"]
     )
@@ -137,14 +146,16 @@ def plot_iou_conf_heatmaps(args: Namespace):
                 f"Calculating metrics for conf_threshold: {conf_threshold} and iou_threshold: {iou_threshold}"
             )
             metrics = calculate_precision_recall_f1(
-                pred_annotation_file, gt_annotation_file, conf_threshold=conf_threshold, iou_threshold=iou_threshold
+                pred_annotation_file,
+                gt_annotation_file,
+                conf_threshold=conf_threshold,
+                iou_threshold=iou_threshold,
             )
             metrics["conf_threshold"] = conf_threshold.round(2)
             metrics["iou_threshold"] = iou_threshold.round(2)
 
             metrics_df = pd.concat([metrics_df, metrics], axis=0)
             print("Done")
-
 
     metrics_df.reset_index(inplace=True)
     # A subplot grid with 2 rows, 2 columns, first row for gcrypto, second for giardia, each column for precision and recall
@@ -191,8 +202,6 @@ def plot_iou_conf_heatmaps(args: Namespace):
         print(f"Saved pr heatmap at {save_path}")
 
 
-
-
 if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument(
@@ -206,7 +215,9 @@ if __name__ == "__main__":
         "--fold", type=int, default=1, help="Fold to use for evaluation"
     )
     parser.add_argument("--result_json", type=str, default="")
-    parser.add_argument("--plot_type", type=str, default="heatmap", help="heatmap or pr_curve")
+    parser.add_argument(
+        "--plot_type", type=str, default="heatmap", help="heatmap or pr_curve"
+    )
     parser.add_argument("--save", type=bool, default=False)
     args = parser.parse_args()
     if args.plot_type == "heatmap":
