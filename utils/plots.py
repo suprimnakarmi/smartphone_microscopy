@@ -115,7 +115,7 @@ def plot_iou_conf_heatmaps(args: Namespace):
         f"cysts_dataset_all/{sample_type}/fold_{fold}/{sample_type}_coco_annos_val.json",
     )
 
-    pred_annotation_file = os.path.join(
+    pred_annotation_file = args.result_json or os.path.join(
         base_dir, f"outputs/{sample_type}/{model_type}/fold_{fold}/results.bbox.json"
     )
 
@@ -147,31 +147,33 @@ def plot_iou_conf_heatmaps(args: Namespace):
 
 
     metrics_df.reset_index(inplace=True)
-
     # A subplot grid with 2 rows, 2 columns, first row for gcrypto, second for giardia, each column for precision and recall
-    fig, axs = plt.subplots(2, 2, figsize=(10, 10))
+    fig, axs = plt.subplots(2, 3, figsize=(15, 10))
     fig.suptitle(
         f"Precision-Recall Heatmap for {sample_type.replace('_', ' ')} using {model_type.replace('_', ' ').capitalize()}"
     )
 
     for i in range(2):
-        for j in range(2):
+        for j in range(3):
             if i == 0:
                 category = "Crypto"
             else:
                 category = "Giardia"
             if j == 0:
                 metric = "precision"
-            else:
+            elif j == 1:
                 metric = "recall"
+            else:
+                metric = "f1_score"
 
-            sns.heatmap(
+            ax = sns.heatmap(
                 metrics_df[metrics_df["category"] == category].pivot(
                     "conf_threshold", "iou_threshold", metric
                 ),
                 fmt=".2f",
                 ax=axs[i, j],
             )
+            ax.invert_yaxis()
             axs[i, j].set_title(f"{category.capitalize()} {metric.capitalize()}")
             axs[i, j].set_xlabel("IoU Threshold")
             axs[i, j].set_ylabel("Confidence Threshold")
@@ -203,6 +205,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--fold", type=int, default=1, help="Fold to use for evaluation"
     )
+    parser.add_argument("--result_json", type=str, default="")
     parser.add_argument("--plot_type", type=str, default="heatmap", help="heatmap or pr_curve")
     parser.add_argument("--save", type=bool, default=False)
     args = parser.parse_args()

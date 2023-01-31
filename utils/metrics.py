@@ -38,6 +38,11 @@ def calculate_precision_recall_f1(
     with open(pred_annotations_file) as f:
         pred_annotations = json.load(f)
 
+    # change gt_annos id value to image names
+    for i in range(len(gt_annotations["images"])):
+        gt_annotations["images"][i]["image_id"] = gt_annotations["images"][i]["file_name"].rsplit("/")[-1].split(".")[0]
+
+
     gt_annotations_df = pd.DataFrame(gt_annotations["annotations"])
     pred_annotations_df = pd.DataFrame(pred_annotations)
 
@@ -47,6 +52,13 @@ def calculate_precision_recall_f1(
     )
     gt_annotations_df["bbox"] = gt_annotations_df["bbox"].apply(
         lambda x: [x[0], x[1], x[0] + x[2], x[1] + x[3]]
+    )
+
+    images_df = pd.DataFrame(gt_annotations["images"])
+
+    # replace image_id of gt_annotations_df with image_id of images_df
+    gt_annotations_df["image_id"] = gt_annotations_df["image_id"].apply(
+        lambda x: images_df[images_df["id"] == x]["image_id"].values[0]
     )
 
     categories = sorted(gt_annotations_df.category_id.unique())
