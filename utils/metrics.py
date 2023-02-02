@@ -61,6 +61,11 @@ def calculate_precision_recall_f1(
         lambda x: images_df[images_df["id"] == x]["image_id"].values[0]
     )
 
+    # replace image_id of pred_annotations_df with image_id of images_df
+    pred_annotations_df["image_id"] = pred_annotations_df["image_id"].apply(
+        lambda x: images_df[images_df["id"] == x]["image_id"].values[0]
+    )
+
     categories = sorted(gt_annotations_df.category_id.unique())
 
     # dataframe to store the precision, recall and f1 score for each class
