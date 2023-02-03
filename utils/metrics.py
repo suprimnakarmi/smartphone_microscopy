@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 import torch
 from torchvision.ops import box_iou
+from argparse import ArgumentParser, Namespace
 
 
 def calculate_precision_recall_f1(
@@ -38,10 +39,15 @@ def calculate_precision_recall_f1(
     with open(pred_annotations_file) as f:
         pred_annotations = json.load(f)
 
+    if len(pred_annotations) == 0:
+        print("No predictions found")
+        return
+
     # change gt_annos id value to image names
     for i in range(len(gt_annotations["images"])):
-        gt_annotations["images"][i]["image_id"] = gt_annotations["images"][i]["file_name"].rsplit("/")[-1].split(".")[0]
-
+        gt_annotations["images"][i]["image_id"] = (
+            gt_annotations["images"][i]["file_name"].rsplit("/")[-1].split(".")[0]
+        )
 
     gt_annotations_df = pd.DataFrame(gt_annotations["annotations"])
     pred_annotations_df = pd.DataFrame(pred_annotations)
@@ -186,6 +192,7 @@ def calculate_5_fold_precision_recall_f1(
     metrics_df = None
 
     for fold in range(1, 6):
+        print(f"Calculating metrics for fold {fold}")
         # get the ground truth and predicted annotations for the current fold
         gt_annotation_file = os.path.join(
             base_dir,
@@ -201,9 +208,9 @@ def calculate_5_fold_precision_recall_f1(
             continue
 
         # calculate the precision, recall and f1 score for the current fold
-        fold_metrics_df, *_ = calculate_precision_recall_f1(
-            gt_annotation_file,
+        fold_metrics_df = calculate_precision_recall_f1(
             pred_annotation_file,
+            gt_annotation_file,
             conf_threshold=conf_threshold,
             iou_threshold=iou_threshold,
         )
@@ -234,5 +241,31 @@ def calculate_5_fold_precision_recall_f1(
             index=False,
             float_format=r"%.3f",
         )
-        print(f"Saved metrics to {save_path}")
+        print(
+            f"Saved metrics to {save_path}, iou_threshold={iou_threshold}, conf_threshold={conf_threshold}"
+        )
     return metrics_df
+
+
+if __name__ == "__main__":
+    parser = ArgumentParser()
+    parser.add_argument("--sample_type", type=str, default="brightfield_reference")
+    parser.add_argument("--model_name", type=str, default="faster_rcnn")
+    parser.add_argument("--conf_threshold", type=float, default=0.5)
+    parser.add_argument("--iou_threshold", type=float, default=0.5)
+    parser.add_argument("--save_metrics", type=bool, default=False)
+    parser.add_argument(
+        "--base_dir",
+        type=str,
+        default="/mnt/Enterprise/safal/AI_Assisted_smartphone_microscopy",
+    )
+
+    args = parser.parse_args()
+    calculate_5_fold_precision_recall_f1(
+        base_dir=args.base_dir,
+        sample_type=args.sample_type,
+        model_name=args.model_name,
+        conf_threshold=args.conf_threshold,
+        iou_threshold=args.iou_threshold,
+        save_metrics=args.save_metrics,
+    )
