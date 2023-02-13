@@ -175,6 +175,7 @@ def calculate_5_fold_precision_recall_f1(
     conf_threshold=0.5,
     iou_threshold=0.5,
     save_metrics=False,
+    mode="val",
 ):
     """
     Calculates the precision, recall and f1 score for the 5 folds of the dataset
@@ -194,15 +195,26 @@ def calculate_5_fold_precision_recall_f1(
     for fold in range(1, 6):
         print(f"Calculating metrics for fold {fold}")
         # get the ground truth and predicted annotations for the current fold
-        gt_annotation_file = os.path.join(
-            base_dir,
-            f"cysts_dataset_all/{sample_type}/fold_{fold}/{sample_type}_coco_annos_val.json",
-        )
+        if mode == "val":
+            gt_annotation_file = os.path.join(
+                base_dir,
+                f"cysts_dataset_all/{sample_type}/fold_{fold}/{sample_type}_coco_annos_val.json",
+            )
 
-        pred_annotation_file = os.path.join(
-            base_dir,
-            f"outputs/{sample_type}/{model_name}/fold_{fold}/results.bbox.json",
-        )
+            pred_annotation_file = os.path.join(
+                base_dir,
+                f"outputs/{sample_type}/{model_name}/fold_{fold}/results.bbox.json",
+            )
+        else:
+            gt_annotation_file = os.path.join(
+                base_dir,
+                f"cysts_dataset_all/{sample_type}_test/{sample_type}_test_coco_annos.json",
+            )
+
+            pred_annotation_file = os.path.join(
+                base_dir,
+                f"outputs/{sample_type}/{model_name}/fold_{fold}/results_test.bbox.json",
+            )
         if not os.path.exists(pred_annotation_file):
             print(f"Skipping fold {fold} as no predictions were made")
             continue
@@ -233,9 +245,14 @@ def calculate_5_fold_precision_recall_f1(
     metrics_df = metrics_df.reset_index()
 
     if save_metrics:
-        save_path = os.path.join(
-            base_dir, f"outputs/{sample_type}/{model_name}/metrics_pr.csv"
-        )
+        if mode == "val":
+            save_path = os.path.join(
+                base_dir, f"outputs/{sample_type}/{model_name}/metrics_pr.csv"
+            )
+        else:
+            save_path = os.path.join(
+                base_dir, f"outputs/{sample_type}/{model_name}/metrics_pr_test.csv"
+            )
         metrics_df.to_csv(
             save_path,
             index=False,
@@ -259,6 +276,7 @@ if __name__ == "__main__":
         type=str,
         default="/mnt/Enterprise/safal/AI_Assisted_smartphone_microscopy",
     )
+    parser.add_argument("--mode", type=str, default="val")
 
     args = parser.parse_args()
     calculate_5_fold_precision_recall_f1(
@@ -268,4 +286,5 @@ if __name__ == "__main__":
         conf_threshold=args.conf_threshold,
         iou_threshold=args.iou_threshold,
         save_metrics=args.save_metrics,
+        mode=args.mode,
     )
