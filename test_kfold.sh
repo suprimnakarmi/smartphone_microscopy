@@ -27,11 +27,11 @@ for i in $(seq 1 $k); do
     replacement_value="fold_$i"
     sed -i "s/$search_string/$replacement_value/g" $config_file
     python mmdetection/tools/test.py $config_file \
-        --gpu-id 1 \
+        --gpu-id 0 \
         ${output_folder}/fold_${i}/latest.pth \
         --format-only \
         --options \
-        "jsonfile_prefix=${output_folder}/fold_${i}/results"
+        "jsonfile_prefix=${output_folder}/fold_${i}/results_test"
 
     search_string=$replacement_value
 done

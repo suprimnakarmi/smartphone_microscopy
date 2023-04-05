@@ -68,9 +68,10 @@ def calculate_precision_recall_f1(
     )
 
     # replace image_id of pred_annotations_df with image_id of images_df
-    pred_annotations_df["image_id"] = pred_annotations_df["image_id"].apply(
-        lambda x: images_df[images_df["id"] == x]["image_id"].values[0]
-    )
+    # comment this line for yolov8
+    # pred_annotations_df["image_id"] = pred_annotations_df["image_id"].apply(
+    #     lambda x: images_df[images_df["id"] == x]["image_id"].values[0]
+    # )
 
     categories = sorted(gt_annotations_df.category_id.unique())
 
@@ -274,17 +275,53 @@ if __name__ == "__main__":
     parser.add_argument(
         "--base_dir",
         type=str,
-        default="/mnt/Enterprise/safal/AI_Assisted_smartphone_microscopy",
+        default="/mnt/Enterprise/safal/AI_assisted_microscopy_system",
     )
     parser.add_argument("--mode", type=str, default="val")
+    parser.add_argument("--fold", type=int, default=1)
 
     args = parser.parse_args()
-    calculate_5_fold_precision_recall_f1(
-        base_dir=args.base_dir,
-        sample_type=args.sample_type,
-        model_name=args.model_name,
-        conf_threshold=args.conf_threshold,
-        iou_threshold=args.iou_threshold,
-        save_metrics=args.save_metrics,
-        mode=args.mode,
-    )
+
+    if args.fold == 1:
+        metrics = calculate_precision_recall_f1(
+            pred_annotations_file=os.path.join(
+                args.base_dir,
+                f"outputs/{args.sample_type}/{args.model_name}/results.bbox.json",
+            ),
+            gt_annotations_file=os.path.join(
+                args.base_dir,
+                f"cysts_dataset_all/{args.sample_type}/{args.sample_type}_coco_annos.json",
+            ),
+            conf_threshold=args.conf_threshold,
+            iou_threshold=args.iou_threshold,
+        )
+        if args.save_metrics:
+            if args.mode == "val":
+                save_path = os.path.join(
+                    args.base_dir,
+                    f"outputs/{args.sample_type}/{args.model_name}/metrics_pr.csv",
+                )
+            else:
+                save_path = os.path.join(
+                    args.base_dir,
+                    f"outputs/{args.sample_type}/{args.model_name}/metrics_pr_test.csv",
+                )
+            metrics.to_csv(
+                save_path,
+                index=False,
+                float_format=r"%.3f",
+            )
+            print(
+                f"Saved metrics to {save_path}, iou_threshold={args.iou_threshold}, conf_threshold={args.conf_threshold}"
+            )
+    else:
+        metrics = calculate_5_fold_precision_recall_f1(
+            base_dir=args.base_dir,
+            sample_type=args.sample_type,
+            model_name=args.model_name,
+            conf_threshold=args.conf_threshold,
+            iou_threshold=args.iou_threshold,
+            save_metrics=args.save_metrics,
+            mode=args.mode,
+        )
+    print(metrics)

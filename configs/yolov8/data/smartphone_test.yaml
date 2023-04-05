@@ -1,0 +1,9 @@
+path: /mnt/Enterprise/safal/AI_assisted_microscopy_system/yolov8/smartphone_sample_test # dataset root dir
+train: test # train images (relative to 'path')
+val: test # val images (relative to 'path')
+test: test
+
+# Classes
+names:
+  0: Cryptosporidium
+  1: Giardia

@@ -28,7 +28,7 @@ data = dict(
             type=dataset_type,
             classes=classes,
             ann_file=os.path.join(
-                data_root, "fold_1", "smartphone_sample_coco_annos_train.json"
+                data_root, "fold_5", "smartphone_sample_coco_annos_train.json"
             ),
             img_prefix=os.path.join(data_root, "train"),
         ),
@@ -37,7 +37,7 @@ data = dict(
         type=dataset_type,
         classes=classes,
         ann_file=os.path.join(
-            data_root, "fold_1", "smartphone_sample_coco_annos_val.json"
+            data_root, "fold_5", "smartphone_sample_coco_annos_val.json"
         ),
         img_prefix=os.path.join(data_root, "train"),
     ),
@@ -45,9 +45,11 @@ data = dict(
         type=dataset_type,
         classes=classes,
         ann_file=os.path.join(
-            data_root, "fold_1", "smartphone_sample_coco_annos_val.json"
+            dataset_home,
+            "smartphone_sample_test",
+            "smartphone_sample_test_coco_annos.json",
         ),
-        img_prefix=os.path.join(data_root, "train"),
+        img_prefix=os.path.join(data_root, "test"),
     ),
 )
 # fp16 settings
@@ -71,7 +73,7 @@ log_config = dict(
             init_kwargs=dict(
                 project="mmdetection_cysts",
                 group=f"faster_rcnn_{sample_type}",
-                name=f"{sample_type}_faster_rcnn_x101_32x8d_fpn_mstrain_3x_coco_fold_1",
+                name=f"{sample_type}_faster_rcnn_x101_32x8d_fpn_mstrain_3x_coco_fold_5",
             ),
         ),
     ],
@@ -80,6 +82,6 @@ log_config = dict(
 resume_from = None
 auto_resume = True
 
-work_dir = f"/mnt/Enterprise/safal/AI_assisted_microscopy_system/outputs/{sample_type}/faster_rcnn_x101_32x8d_fpn_mstrain_3x_coco/fold_1"
+work_dir = f"/mnt/Enterprise/safal/AI_assisted_microscopy_system/outputs/{sample_type}/faster_rcnn_x101_32x8d_fpn_mstrain_3x_coco/fold_5"
 
 runner = dict(type="EpochBasedRunner", max_epochs=20)

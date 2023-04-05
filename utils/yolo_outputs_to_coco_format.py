@@ -9,6 +9,8 @@ import argparse
 import numpy as np
 import cv2
 
+from tqdm import tqdm
+
 
 # the yolo output laels are in the following format
 # <object-class> <x> <y> <width> <height> <confidence>
@@ -24,10 +26,11 @@ import cv2
 # ]
 
 # the function takes the yolo output labels and converts them to coco output format
-def yolo_to_coco(yolo_label, image_id, category_id, image_width, image_height):
+def yolo_to_coco(yolo_label, image_id, image_width, image_height):
+    # print(yolo_label)
     coco_label = {}
     coco_label["image_id"] = image_id
-    coco_label["category_id"] = category_id
+    coco_label["category_id"] = int(yolo_label[0])
 
     # convert the x, y, width, height to coco format
     coco_label["bbox"] = [
@@ -50,7 +53,7 @@ def yolo_outputs_to_coco_format(yolo_output_dir, coco_output_dir, images_dir):
     coco_output_labels = []
 
     # loop over the yolo output files
-    for yolo_output_file in yolo_output_files:
+    for yolo_output_file in tqdm(yolo_output_files):
         # get the image id from the file name
         image_id = os.path.basename(yolo_output_file).split(".")[0]
 
@@ -58,17 +61,25 @@ def yolo_outputs_to_coco_format(yolo_output_dir, coco_output_dir, images_dir):
         yolo_output_labels = np.loadtxt(yolo_output_file)
 
         # loop over the yolo output labels
-        for yolo_output_label in yolo_output_labels:
-            # load image to get the image width and height
-            image = cv2.imread(os.path.join(images_dir, image_id + ".jpg"))
-            image_height, image_width, _ = image.shape
+        # load image to get the image width and height
+        image = cv2.imread(os.path.join(images_dir, image_id + ".jpg"))
+        image_height, image_width, _ = image.shape
+        if any(isinstance(i, np.ndarray) for i in yolo_output_labels):
+            for yolo_output_label in yolo_output_labels:
 
-            # convert the yolo output labels to coco output labels
-            coco_output_label = yolo_to_coco(yolo_output_label, image_id, 1, 640, 480)
+                # convert the yolo output labels to coco output labels
+                coco_output_label = yolo_to_coco(
+                    yolo_output_label, image_id, image_width, image_height
+                )
+                coco_output_labels.append(coco_output_label)
+        else:
+            coco_output_label = yolo_to_coco(
+                yolo_output_labels, image_id, image_width, image_height
+            )
             coco_output_labels.append(coco_output_label)
 
     # write the coco output labels to a json file
-    with open(os.path.join(coco_output_dir, "predictions.json"), "w") as f:
+    with open(os.path.join(coco_output_dir, "results.bbox.json"), "w") as f:
         json.dump(coco_output_labels, f)
 
 
