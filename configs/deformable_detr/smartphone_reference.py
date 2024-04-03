@@ -144,7 +144,7 @@ auto_resume = True
 
 work_dir = f"/mnt/SSD1/safal/smartphone_microscopy/outputs/{sample_type}/deformable_detr/fold_5"
 
-runner = dict(type="EpochBasedRunner", max_epochs=30)
+runner = dict(type="EpochBasedRunner", max_epochs=100)
 
 
 optimizer_config = dict(_delete_=True, grad_clip=dict(max_norm=35, norm_type=2))
